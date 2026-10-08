@@ -33,8 +33,151 @@
             margin:10px 0;
         }
 
-        input{
+        input[type="range"]{
             width:200px;
+        }
+
+        #telescopeButton,
+        #closeTelescope{
+            padding:8px 14px;
+            border:1px solid rgba(255,255,255,0.8);
+            border-radius:5px;
+            background:rgba(255,255,255,0.12);
+            color:white;
+            cursor:pointer;
+        }
+
+        #telescopeButton{
+            display:block;
+            margin-top:20px;
+        }
+
+        #telescopeDialog{
+            box-sizing:border-box;
+            width:100vw;
+            height:100dvh;
+            max-width:none;
+            max-height:none;
+            margin:0;
+            padding:0;
+            border:0;
+            background:black;
+            color:white;
+            overflow:hidden;
+        }
+
+        #telescopeDialog::backdrop{
+            background:rgba(0,0,0,0.85);
+        }
+
+        #telescopeDialog h2{
+            position:absolute;
+            width:1px;
+            height:1px;
+            overflow:hidden;
+            clip-path:inset(50%);
+        }
+
+        #closeTelescope{
+            position:absolute;
+            z-index:5;
+            top:20px;
+            right:20px;
+        }
+
+        #flagScene{
+            box-sizing:border-box;
+            position:absolute;
+            left:50%;
+            top:50%;
+            width:min(100vw, 100dvh);
+            aspect-ratio:1;
+            transform:translate(-50%, -50%);
+            background:black;
+            overflow:hidden;
+            border:6px solid #111;
+            border-radius:50%;
+            box-shadow:0 0 0 2px #555;
+        }
+
+        #flagScene::after{
+            content:"";
+            position:absolute;
+            inset:0;
+            z-index:3;
+            border-radius:50%;
+            background:radial-gradient(circle, transparent 55%, rgba(0,0,0,0.45) 78%, black 100%);
+            pointer-events:none;
+        }
+
+        #moon{
+            position:absolute;
+            max-width:none;
+        }
+
+        #flagPhoto{
+            position:absolute;
+            width:204.35%;
+            max-width:none;
+            left:-52.17%;
+            top:-141.3%;
+        }
+
+        #flagColorPatch,
+        #flagText{
+            position:absolute;
+            left:14.7%;
+            top:22.1%;
+            width:32%;
+            height:22.7%;
+            clip-path:polygon(0 10%, 98% 0, 100% 93%, 5% 100%);
+        }
+
+        #flagColorPatch{
+            background:#ffffff;
+            mix-blend-mode:multiply;
+        }
+
+        #flagText{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            color:#222222;
+            font-size:20px;
+            font-weight:bold;
+            white-space:nowrap;
+        }
+
+        #flagControls{
+            position:absolute;
+            z-index:4;
+            top:20px;
+            left:20px;
+            width:180px;
+            padding:12px;
+            background:rgba(0,0,0,0.7);
+        }
+
+        #flagControls label{
+            display:block;
+            margin:12px 0 4px;
+        }
+
+        #flagInput{
+            width:170px;
+        }
+
+        #flagControls input[type="range"]{
+            width:170px;
+        }
+
+        @media (max-width:700px){
+            #flagScene{
+                top:auto;
+                bottom:0;
+                transform:translateX(-50%);
+            }
         }
 
         /* 북반구의 반원 궤적 */
@@ -60,11 +203,13 @@
             transform-origin:0 0;
         }
 
-        #moon{
+        #moonFrame{
             width:130px;
+            height:130px;
             position:absolute;
-            right:-65px;
+            left:calc(100% - 65px);
             top:-65px;
+            transform-origin:center;
         }
 
         #ground{
@@ -124,11 +269,15 @@
             <p>TIME</p>
             <p id="time">6시</p>
             <input type="range" id="hour1" min="6" max="18" value="6">
+
+            <button type="button" id="telescopeButton">🔭 망원경으로 달 보기</button>
         </div>
 
         <div id="circle">
             <div id="moonmove">
-                <img id="moon" src="images/moon5.png" alt="달">
+                <div id="moonFrame">
+                    <img id="moon" src="images/moon5.png" alt="달">
+                </div>
             </div>
         </div>
 
@@ -139,34 +288,102 @@
         <div id="ground"></div>
     </div>
 
+    <dialog id="telescopeDialog" aria-labelledby="telescopeTitle">
+        <button type="button" id="closeTelescope" aria-label="닫기">×</button>
+        <h2 id="telescopeTitle">망원경으로 본 달</h2>
+        <div id="flagScene">
+            <img id="flagPhoto" src="images/flag.png" alt="달 표면에 꽂힌 깃발과 우주인">
+            <div id="flagColorPatch" aria-hidden="true"></div>
+            <div id="flagText" aria-hidden="true"></div>
+        </div>
+        <div id="flagControls">
+            <label for="flagInput">깃발에 쓸 글자</label>
+            <input type="text" id="flagInput" maxlength="8" placeholder="이름을 입력하세요">
+
+            <label for="textColor">글자 색깔</label>
+            <input type="color" id="textColor" value="#222222">
+
+            <label for="textSize">글자 크기 <output id="textSizeValue">20</output>px</label>
+            <input type="range" id="textSize" min="10" max="32" value="20">
+
+            <label for="flagColor">깃발 배경색</label>
+            <input type="color" id="flagColor" value="#ffffff">
+        </div>
+    </dialog>
+
     <script>
+        const moonImages = [
+            { src:"images/moon1.png", size:[1310,1201], bounds:[122,58,1186,1126] },
+            { src:"images/moon2.png", size:[1310,1201], bounds:[119,64,1186,1143] },
+            { src:"images/moon3.png", size:[1263,1245], bounds:[75,53,1188,1182] },
+            { src:"images/moon4.png", size:[1290,1219], bounds:[94,69,1187,1165] },
+            { src:"images/moon5.png", size:[1339,1174], bounds:[122,45,1211,1127] },
+            { src:"images/moon6.png", size:[1357,1159], bounds:[127,33,1220,1115] },
+            { src:"images/moon7.png", size:[1219,1290], bounds:[52,71,1166,1190] },
+            { src:"images/moon8.png", size:[1312,1199], bounds:[118,53,1195,1126] }
+        ];
+        const telescopeDialog = document.getElementById("telescopeDialog");
+        const moonFrame = document.getElementById("moonFrame");
+        const flagInput = document.getElementById("flagInput");
+        const flagText = document.getElementById("flagText");
+        const flagScene = document.getElementById("flagScene");
+        const textColor = document.getElementById("textColor");
+        const textSize = document.getElementById("textSize");
+        const textSizeValue = document.getElementById("textSizeValue");
+        const flagColor = document.getElementById("flagColor");
+        const flagColorPatch = document.getElementById("flagColorPatch");
+        let currentMoonIndex = 4;
+
+        // 투명 여백을 제외한 달 부분을 지정한 크기로 맞춘다.
+        function fitMoon(imageElement, image, diameter){
+            const [left, top, right, bottom] = image.bounds;
+            const visibleWidth = right - left;
+            const visibleHeight = bottom - top;
+
+            imageElement.src = image.src;
+            imageElement.style.width = (image.size[0] * diameter / visibleWidth) + "px";
+            imageElement.style.height = (image.size[1] * diameter / visibleHeight) + "px";
+            imageElement.style.left = (-left * diameter / visibleWidth) + "px";
+            imageElement.style.top = (-top * diameter / visibleHeight) + "px";
+        }
+
+        document.getElementById("telescopeButton").addEventListener("click", function(){
+            telescopeDialog.showModal();
+            updateFlag();
+            flagInput.focus();
+        });
+
+        document.getElementById("closeTelescope").addEventListener("click", function(){
+            telescopeDialog.close();
+        });
+
+        function updateFlag(){
+            flagText.textContent = flagInput.value;
+            flagText.style.color = textColor.value;
+            flagText.style.fontSize = (Number(textSize.value) * flagScene.clientWidth / 420) + "px";
+            textSizeValue.value = textSize.value;
+            flagColorPatch.style.backgroundColor = flagColor.value;
+        }
+
+        [flagInput, textColor, textSize, flagColor].forEach(function(input){
+            input.addEventListener("input", updateFlag);
+        });
+
+        window.addEventListener("resize", updateFlag);
+
         day1.oninput = function(){
             date.innerHTML = day1.value + "일";
 
-            if(day1.value <= 3){
-                moon.src = "images/moon1.png";
-            }
-            else if(day1.value <= 7){
-                moon.src = "images/moon2.png";
-            }
-            else if(day1.value <= 10){
-                moon.src = "images/moon3.png";
-            }
-            else if(day1.value <= 14){
-                moon.src = "images/moon4.png";
-            }
-            else if(day1.value <= 17){
-                moon.src = "images/moon5.png";
-            }
-            else if(day1.value <= 21){
-                moon.src = "images/moon6.png";
-            }
-            else if(day1.value <= 25){
-                moon.src = "images/moon7.png";
-            }
-            else{
-                moon.src = "images/moon8.png";
-            }
+            const day = Number(day1.value);
+            currentMoonIndex = day <= 3 ? 0
+                : day <= 7 ? 1
+                : day <= 10 ? 2
+                : day <= 14 ? 3
+                : day <= 17 ? 4
+                : day <= 21 ? 5
+                : day <= 25 ? 6 : 7;
+
+            fitMoon(moon, moonImages[currentMoonIndex], 130);
         }
 
         hour1.oninput = function(){
@@ -174,7 +391,7 @@
 
             let angle = 180 + (hour1.value - 6) * 15;
             moonmove.style.transform = "rotate(" + angle + "deg)";
-            moon.style.transform = "rotate(" + (-angle) + "deg)";
+            moonFrame.style.transform = "rotate(" + (-angle) + "deg)";
 
             let brightness;
             if(hour1.value <= 12){
